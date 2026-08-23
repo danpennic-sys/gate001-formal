@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  unit-tests:
+    name: Unit tests (Node)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+      - name: Run Jest
+        run: npm test
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run secret scan
+        run: bash gate001/secret-scan.sh
+
+  formal-smoke:
+    name: Formal verification smoke (TLC)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run TLC via official image
+        run: |
+          docker run --rm -v "$PWD":/spec tlaplus/tlaplus \
+            tlc2.TLC -config /spec/formal/ContinuityV041.cfg /spec/formal/ContinuityV041.tla
